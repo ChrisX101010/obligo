@@ -228,7 +228,7 @@ function AppInner() {
             {(["dashboard", "pools", "invoices", "submit"] as const).map(tab => (
               <button key={tab} onClick={() => setActiveTab(tab)}
                 className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${activeTab === tab ? "bg-mint/10 text-mint border border-mint/20" : "text-gray-400 hover:text-white"}`}>
-                {tab === "submit" ? "Submit Invoice" : tab === "submit" ? "Submit Invoice" : tab.charAt(0).toUpperCase() + tab.slice(1)}
+                {tab === "submit" ? "Submit Invoice" : tab.charAt(0).toUpperCase() + tab.slice(1)}
               </button>
             ))}
           </div>
@@ -246,7 +246,7 @@ function AppInner() {
             {(["dashboard", "pools", "invoices", "submit"] as const).map(tab => (
               <button key={tab} onClick={() => { setActiveTab(tab); setMobileNav(false); }}
                 className={`px-4 py-2 rounded-md text-sm font-medium text-left ${activeTab === tab ? "bg-mint/10 text-mint" : "text-gray-400"}`}>
-                {tab === "submit" ? "Submit Invoice" : tab === "submit" ? "Submit Invoice" : tab.charAt(0).toUpperCase() + tab.slice(1)}
+                {tab === "submit" ? "Submit Invoice" : tab.charAt(0).toUpperCase() + tab.slice(1)}
               </button>
             ))}
           </div>
