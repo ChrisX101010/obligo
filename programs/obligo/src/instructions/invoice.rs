@@ -1,5 +1,5 @@
 use anchor_lang::prelude::*;
-use anchor_spl::token::{self, Mint, Token, TokenAccount, Transfer};
+use anchor_spl::token::{self, Token, TokenAccount, Transfer};
 use crate::state::*;
 use crate::utils::ObligoError;
 
@@ -20,6 +20,10 @@ pub fn submit_invoice(
 ) -> Result<()> {
     require!(!ctx.accounts.protocol.paused, ObligoError::ProtocolPaused);
     require!(face_value > 0, ObligoError::ZeroFaceValue);
+    // Upper bound: 10 trillion USDC lamports (~$10M per invoice).
+    // Prevents nonsensical u64-max values from polluting the registry and
+    // ensures face_value * 10000 comfortably fits in u128 intermediaries.
+    require!(face_value <= 10_000_000_000_000, ObligoError::FaceValueTooLarge);
     require!(invoice_id.len() <= 64, ObligoError::InvoiceIdTooLong);
     require!(ipfs_hash.len() <= 64, ObligoError::IpfsHashTooLong);
 
@@ -144,43 +148,43 @@ pub fn fund_invoice(ctx: Context<FundInvoice>, discount_bps: u16) -> Result<()> 
 
     // Calculate funded amount (checked arithmetic).
     let funded_amount = (invoice.face_value as u128)
-        .checked_mul((10000u128).checked_sub(discount_bps as u128).unwrap())
+        .checked_mul(
+            (10000u128)
+                .checked_sub(discount_bps as u128)
+                .ok_or(ObligoError::MathOverflow)?,
+        )
         .ok_or(ObligoError::MathOverflow)?
         .checked_div(10000)
         .ok_or(ObligoError::MathOverflow)? as u64;
 
-    // Liquidity check.
+    // Guard against dust invoices where discount math rounds to zero.
+    require!(funded_amount > 0, ObligoError::ZeroFundedAmount);
+
+    // Liquidity check using checked accounting.
     require!(
-        funded_amount <= pool.available_liquidity(),
+        funded_amount <= pool.available_liquidity_checked()?,
         ObligoError::InsufficientLiquidity
     );
 
-    // Transfer USDC from pool vault to seller.
+    // ── Effects first: flip invoice status and update pool accounting ──
     let pool_index_bytes = pool.index.to_le_bytes();
-    let seeds: &[&[u8]] = &[Pool::SEED, &pool_index_bytes, &[pool.bump]];
+    let pool_bump = pool.bump;
+    let pool_key = pool.key();
+    // Capture the AccountInfo handle and numeric index BEFORE the mutable
+    // borrow of `pool` below — otherwise the CPI's `authority:` and the
+    // final `msg!` can't reach through `ctx.accounts.pool` while the mut
+    // borrow is live (E0502).
+    let pool_account_info = ctx.accounts.pool.to_account_info();
+    let pool_index_for_log = pool.index;
 
-    token::transfer(
-        CpiContext::new_with_signer(
-            ctx.accounts.token_program.to_account_info(),
-            Transfer {
-                from: ctx.accounts.vault.to_account_info(),
-                to: ctx.accounts.seller_usdc.to_account_info(),
-                authority: ctx.accounts.pool.to_account_info(),
-            },
-            &[seeds],
-        ),
-        funded_amount,
-    )?;
-
-    // Update invoice.
     let invoice = &mut ctx.accounts.invoice;
-    invoice.pool = ctx.accounts.pool.key();
+    invoice.pool = pool_key;
     invoice.funded_amount = funded_amount;
     invoice.discount_bps = discount_bps;
     invoice.funded_at = clock.unix_timestamp;
     invoice.status = InvoiceStatus::Funded;
+    let invoice_index = invoice.index;
 
-    // Update pool.
     let pool = &mut ctx.accounts.pool;
     pool.outstanding_funded = pool
         .outstanding_funded
@@ -191,12 +195,28 @@ pub fn fund_invoice(ctx: Context<FundInvoice>, discount_bps: u16) -> Result<()> 
         .checked_add(1)
         .ok_or(ObligoError::MathOverflow)?;
 
+    // ── Interaction last: transfer USDC from pool vault to seller ──
+    let seeds: &[&[u8]] = &[Pool::SEED, &pool_index_bytes, &[pool_bump]];
+
+    token::transfer(
+        CpiContext::new_with_signer(
+            ctx.accounts.token_program.to_account_info(),
+            Transfer {
+                from: ctx.accounts.vault.to_account_info(),
+                to: ctx.accounts.seller_usdc.to_account_info(),
+                authority: pool_account_info,
+            },
+            &[seeds],
+        ),
+        funded_amount,
+    )?;
+
     msg!(
         "Invoice #{} funded: {} USDC at {}bps discount by pool #{}",
-        invoice.index,
+        invoice_index,
         funded_amount,
         discount_bps,
-        pool.index
+        pool_index_for_log
     );
     Ok(())
 }
@@ -255,7 +275,15 @@ pub fn repay_invoice(ctx: Context<RepayInvoice>) -> Result<()> {
 
     require!(invoice.status == InvoiceStatus::Funded, ObligoError::InvalidInvoiceStatus);
 
-    // Transfer full face_value from debtor to pool vault.
+    let face_value = invoice.face_value;
+    let invoice_index = invoice.index;
+
+    // ── Effects first: flip status ──
+    let invoice = &mut ctx.accounts.invoice;
+    invoice.repaid_at = Clock::get()?.unix_timestamp;
+    invoice.status = InvoiceStatus::Repaid;
+
+    // ── Interaction last: transfer full face_value from debtor to pool vault ──
     token::transfer(
         CpiContext::new(
             ctx.accounts.token_program.to_account_info(),
@@ -265,14 +293,10 @@ pub fn repay_invoice(ctx: Context<RepayInvoice>) -> Result<()> {
                 authority: ctx.accounts.debtor.to_account_info(),
             },
         ),
-        invoice.face_value,
+        face_value,
     )?;
 
-    let invoice = &mut ctx.accounts.invoice;
-    invoice.repaid_at = Clock::get()?.unix_timestamp;
-    invoice.status = InvoiceStatus::Repaid;
-
-    msg!("Invoice #{} repaid: {} USDC", invoice.index, invoice.face_value);
+    msg!("Invoice #{} repaid: {} USDC", invoice_index, face_value);
     Ok(())
 }
 
@@ -286,10 +310,14 @@ pub struct RepayInvoice<'info> {
     )]
     pub invoice: Account<'info, Invoice>,
 
+    /// The pool that funded this invoice. MUST match invoice.pool —
+    /// otherwise a debtor could unknowingly repay into the wrong pool's
+    /// vault and cause cross-pool accounting divergence.
     #[account(
         mut,
         seeds = [Pool::SEED, pool.index.to_le_bytes().as_ref()],
         bump = pool.bump,
+        constraint = pool.key() == invoice.pool @ ObligoError::InvoicePoolMismatch,
     )]
     pub pool: Account<'info, Pool>,
 
@@ -341,29 +369,7 @@ pub fn settle_invoice(ctx: Context<SettleInvoice>) -> Result<()> {
         .checked_div(10000)
         .ok_or(ObligoError::MathOverflow)? as u64;
 
-    // Transfer fee to treasury.
-    if fee > 0 {
-        let pool_index_bytes = pool.index.to_le_bytes();
-        let seeds: &[&[u8]] = &[Pool::SEED, &pool_index_bytes, &[pool.bump]];
-
-        token::transfer(
-            CpiContext::new_with_signer(
-                ctx.accounts.token_program.to_account_info(),
-                Transfer {
-                    from: ctx.accounts.vault.to_account_info(),
-                    to: ctx.accounts.treasury_usdc.to_account_info(),
-                    authority: ctx.accounts.pool.to_account_info(),
-                },
-                &[seeds],
-            ),
-            fee,
-        )?;
-    }
-
-    // Net return to pool = face_value - fee
-    // But the pool only had funded_amount locked, so the actual return
-    // credited is: face_value - fee - funded_amount
-    // And we also release the outstanding_funded.
+    // Net return to pool = face_value - fee - funded_amount
     let net_return = invoice
         .face_value
         .checked_sub(fee)
@@ -371,23 +377,52 @@ pub fn settle_invoice(ctx: Context<SettleInvoice>) -> Result<()> {
         .checked_sub(invoice.funded_amount)
         .ok_or(ObligoError::MathOverflow)?;
 
+    // Capture values needed for CPI/logging before reborrowing as mut.
+    let pool_index_bytes = pool.index.to_le_bytes();
+    let pool_bump = pool.bump;
+    let funded_amount = invoice.funded_amount;
+    let invoice_index = invoice.index;
+    // Same reason as in fund_invoice: take the AccountInfo handle before
+    // the upcoming `&mut ctx.accounts.pool`, otherwise the CPI's
+    // `authority:` field can't reach through `ctx.accounts.pool` (E0502).
+    let pool_account_info = ctx.accounts.pool.to_account_info();
+
+    // ── Effects first: update invoice status and pool accounting ──
+    let invoice = &mut ctx.accounts.invoice;
+    invoice.resolved_at = Clock::get()?.unix_timestamp;
+    invoice.status = InvoiceStatus::Settled;
+
     let pool = &mut ctx.accounts.pool;
     pool.outstanding_funded = pool
         .outstanding_funded
-        .checked_sub(invoice.funded_amount)
+        .checked_sub(funded_amount)
         .ok_or(ObligoError::MathOverflow)?;
     pool.total_returns = pool
         .total_returns
         .checked_add(net_return)
         .ok_or(ObligoError::MathOverflow)?;
 
-    let invoice = &mut ctx.accounts.invoice;
-    invoice.resolved_at = Clock::get()?.unix_timestamp;
-    invoice.status = InvoiceStatus::Settled;
+    // ── Interaction last: transfer protocol fee to treasury via pool PDA signer ──
+    if fee > 0 {
+        let seeds: &[&[u8]] = &[Pool::SEED, &pool_index_bytes, &[pool_bump]];
+
+        token::transfer(
+            CpiContext::new_with_signer(
+                ctx.accounts.token_program.to_account_info(),
+                Transfer {
+                    from: ctx.accounts.vault.to_account_info(),
+                    to: ctx.accounts.treasury_usdc.to_account_info(),
+                    authority: pool_account_info,
+                },
+                &[seeds],
+            ),
+            fee,
+        )?;
+    }
 
     msg!(
         "Invoice #{} settled. Profit: {}, Fee: {}, Net return: {}",
-        invoice.index,
+        invoice_index,
         profit,
         fee,
         net_return
@@ -407,7 +442,7 @@ pub struct SettleInvoice<'info> {
         mut,
         seeds = [Pool::SEED, pool.index.to_le_bytes().as_ref()],
         bump = pool.bump,
-        constraint = pool.key() == invoice.pool,
+        constraint = pool.key() == invoice.pool @ ObligoError::InvoicePoolMismatch,
     )]
     pub pool: Account<'info, Pool>,
 
@@ -498,7 +533,7 @@ pub struct MarkDefaulted<'info> {
         mut,
         seeds = [Pool::SEED, pool.index.to_le_bytes().as_ref()],
         bump = pool.bump,
-        constraint = pool.key() == invoice.pool,
+        constraint = pool.key() == invoice.pool @ ObligoError::InvoicePoolMismatch,
     )]
     pub pool: Account<'info, Pool>,
 

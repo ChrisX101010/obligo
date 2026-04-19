@@ -64,8 +64,12 @@ pub struct Pool {
 
 impl Pool {
     pub const SEED: &'static [u8] = b"pool";
+    /// Dead shares locked on first deposit to prevent inflation attack.
+    /// These shares are minted to the pool itself (burned) and never redeemable.
+    /// See: https://mixbytes.io/blog/overview-of-the-inflation-attack
+    pub const MIN_LIQUIDITY: u64 = 1_000;
 
-    /// Available liquidity = deposits - withdrawals - outstanding + returns - losses
+    /// Available liquidity (saturating — for display only, NEVER for accounting).
     pub fn available_liquidity(&self) -> u64 {
         self.total_deposited
             .saturating_sub(self.total_withdrawn)
@@ -74,51 +78,88 @@ impl Pool {
             .saturating_sub(self.total_losses)
     }
 
-    /// Net asset value = available_liquidity + outstanding_funded
+    /// Available liquidity with checked arithmetic. Use this for on-chain decisions.
+    /// Returns an error if accounting state is inconsistent (should be unreachable).
+    pub fn available_liquidity_checked(&self) -> Result<u64> {
+        let after_withdrawn = self
+            .total_deposited
+            .checked_sub(self.total_withdrawn)
+            .ok_or(crate::utils::ObligoError::MathOverflow)?;
+        let after_outstanding = after_withdrawn
+            .checked_sub(self.outstanding_funded)
+            .ok_or(crate::utils::ObligoError::MathOverflow)?;
+        let after_returns = after_outstanding
+            .checked_add(self.total_returns)
+            .ok_or(crate::utils::ObligoError::MathOverflow)?;
+        after_returns
+            .checked_sub(self.total_losses)
+            .ok_or(crate::utils::ObligoError::MathOverflow.into())
+    }
+
+    /// Net asset value (saturating — for display only).
     pub fn nav(&self) -> u64 {
         self.available_liquidity()
             .saturating_add(self.outstanding_funded)
     }
 
+    /// Net asset value with checked arithmetic. Use this for on-chain decisions.
+    pub fn nav_checked(&self) -> Result<u64> {
+        self.available_liquidity_checked()?
+            .checked_add(self.outstanding_funded)
+            .ok_or(crate::utils::ObligoError::MathOverflow.into())
+    }
+
     /// Price per LP share in USDC lamports (6 decimals).
     /// Returns 1_000_000 (1.0 USDC) if no shares exist.
-    pub fn share_price(&self) -> u64 {
+    pub fn share_price(&self) -> Result<u64> {
         if self.total_lp_shares == 0 {
-            1_000_000 // 1:1 at genesis
+            Ok(1_000_000) // 1:1 at genesis
         } else {
             // share_price = nav * 1e6 / total_lp_shares
-            (self.nav() as u128)
-                .checked_mul(1_000_000)
-                .unwrap()
+            let nav = self.nav_checked()? as u128;
+            nav.checked_mul(1_000_000)
+                .ok_or(crate::utils::ObligoError::MathOverflow)?
                 .checked_div(self.total_lp_shares as u128)
-                .unwrap() as u64
+                .ok_or(crate::utils::ObligoError::MathOverflow.into())
+                .map(|x| x as u64)
         }
     }
 
     /// LP shares to mint for a given deposit amount.
-    pub fn shares_for_deposit(&self, amount: u64) -> u64 {
+    /// Returns (user_shares, dead_shares) — dead_shares is MIN_LIQUIDITY on first
+    /// deposit (locked forever), 0 on subsequent deposits.
+    pub fn shares_for_deposit(&self, amount: u64) -> Result<(u64, u64)> {
         if self.total_lp_shares == 0 {
-            amount // 1:1 at genesis
+            // First deposit: mint MIN_LIQUIDITY dead shares + (amount - MIN_LIQUIDITY) to user.
+            // This prevents the inflation/donation attack where a first depositor
+            // with 1 share can manipulate share_price for subsequent depositors.
+            let user_shares = amount
+                .checked_sub(Self::MIN_LIQUIDITY)
+                .ok_or(crate::utils::ObligoError::FirstDepositTooSmall)?;
+            require!(user_shares > 0, crate::utils::ObligoError::FirstDepositTooSmall);
+            Ok((user_shares, Self::MIN_LIQUIDITY))
         } else {
-            // shares = amount * total_shares / nav
-            (amount as u128)
+            let shares = (amount as u128)
                 .checked_mul(self.total_lp_shares as u128)
-                .unwrap()
-                .checked_div(self.nav() as u128)
-                .unwrap() as u64
+                .ok_or(crate::utils::ObligoError::MathOverflow)?
+                .checked_div(self.nav_checked()? as u128)
+                .ok_or(crate::utils::ObligoError::MathOverflow)? as u64;
+            Ok((shares, 0))
         }
     }
 
     /// USDC value of a given number of LP shares.
-    pub fn value_of_shares(&self, shares: u64) -> u64 {
+    pub fn value_of_shares(&self, shares: u64) -> Result<u64> {
         if self.total_lp_shares == 0 {
-            0
+            Ok(0)
         } else {
+            let nav = self.nav_checked()? as u128;
             (shares as u128)
-                .checked_mul(self.nav() as u128)
-                .unwrap()
+                .checked_mul(nav)
+                .ok_or(crate::utils::ObligoError::MathOverflow)?
                 .checked_div(self.total_lp_shares as u128)
-                .unwrap() as u64
+                .ok_or(crate::utils::ObligoError::MathOverflow.into())
+                .map(|x| x as u64)
         }
     }
 }

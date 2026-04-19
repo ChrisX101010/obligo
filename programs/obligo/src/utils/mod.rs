@@ -55,6 +55,16 @@ pub enum ObligoError {
     ZeroDeposit,
     #[msg("Withdraw amount is zero")]
     ZeroWithdraw,
+    #[msg("First deposit must exceed MIN_LIQUIDITY (1000 lamports dead shares)")]
+    FirstDepositTooSmall,
+
+    // ── Fund ──
+    #[msg("Funded amount is zero (face value or discount math rounded to 0)")]
+    ZeroFundedAmount,
+    #[msg("Face value exceeds protocol maximum")]
+    FaceValueTooLarge,
+    #[msg("Invoice pool does not match the pool account provided")]
+    InvoicePoolMismatch,
 
     // ── Math ──
     #[msg("Arithmetic overflow")]

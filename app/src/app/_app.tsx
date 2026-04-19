@@ -73,8 +73,8 @@ function Toast({ message, type, onDone }: { message: string; type: "success" | "
 // ══════════════════════════════════════════════════════════════════════
 function Logo() {
   return (
-    <div className="flex items-center gap-3">
-      <svg width="36" height="36" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+      <svg className="w-8 h-8 sm:w-9 sm:h-9 shrink-0" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
         <rect width="36" height="36" rx="8" fill="#0f0f1a" stroke="#00e6b4" strokeWidth="1.5" strokeOpacity="0.3"/>
         <circle cx="18" cy="18" r="9" fill="none" stroke="#00e6b4" strokeWidth="2"/>
         <circle cx="18" cy="18" r="3.5" fill="#00e6b4"/>
@@ -83,11 +83,11 @@ function Logo() {
         <line x1="9" y1="18" x2="12" y2="18" stroke="#00e6b4" strokeWidth="1.5" strokeLinecap="round"/>
         <line x1="24" y1="18" x2="27" y2="18" stroke="#00e6b4" strokeWidth="1.5" strokeLinecap="round"/>
       </svg>
-      <div className="flex items-baseline gap-2">
-        <span className="font-display font-bold text-xl text-white tracking-tight">
+      <div className="flex items-baseline gap-2 min-w-0">
+        <span className="font-display font-bold text-lg sm:text-xl text-white tracking-tight whitespace-nowrap">
           <span className="text-mint">0</span>BLIG<span className="text-mint">0</span>
         </span>
-        <span className="text-[9px] bg-mint/10 text-mint px-2 py-0.5 rounded-full font-mono border border-mint/20 uppercase tracking-wider">
+        <span className="hidden sm:inline-flex text-[9px] bg-mint/10 text-mint px-2 py-0.5 rounded-full font-mono border border-mint/20 uppercase tracking-wider">
           Devnet
         </span>
       </div>
@@ -100,10 +100,10 @@ function Logo() {
 // ══════════════════════════════════════════════════════════════════════
 function StatCard({ label, value, sub }: { label: string; value: string; sub?: string }) {
   return (
-    <div className="stat-card bg-void-800 border border-void-600 rounded-xl p-6 hover:border-mint/20 transition-all duration-300">
-      <div className="text-sm text-gray-500 font-medium mb-1">{label}</div>
-      <div className="text-2xl font-display font-bold text-white">{value}</div>
-      {sub && <div className="text-xs text-mint mt-1">{sub}</div>}
+    <div className="stat-card bg-void-800 border border-void-600 rounded-xl p-4 sm:p-6 hover:border-mint/20 transition-all duration-300">
+      <div className="text-xs sm:text-sm text-gray-500 font-medium mb-1">{label}</div>
+      <div className="text-xl sm:text-2xl font-display font-bold text-white">{value}</div>
+      {sub && <div className="text-[11px] sm:text-xs text-mint mt-1">{sub}</div>}
     </div>
   );
 }
@@ -220,11 +220,11 @@ function AppInner() {
       {depositPool && <DepositModal pool={depositPool} onClose={() => setDepositPool(null)} onDeposit={handleDeposit} />}
 
       {/* ── Navigation ── */}
-      <nav className="border-b border-void-600 bg-void/80 backdrop-blur-xl sticky top-0 z-50 relative">
-        <div className="max-w-7xl mx-auto px-4 md:px-6 py-3 flex items-center justify-between">
+      <nav className="border-b border-void-600 bg-void/80 backdrop-blur-xl sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-4 md:px-6 py-3 flex items-center justify-between gap-2 sm:gap-4">
           <Logo />
           {/* Desktop tabs */}
-          <div className="nav-tabs hidden md:flex items-center gap-1 bg-void-800 rounded-lg p-1 border border-void-600">
+          <div className="hidden md:flex items-center gap-1 bg-void-800 rounded-lg p-1 border border-void-600">
             {(["dashboard", "pools", "invoices", "submit"] as const).map(tab => (
               <button key={tab} onClick={() => setActiveTab(tab)}
                 className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${activeTab === tab ? "bg-mint/10 text-mint border border-mint/20" : "text-gray-400 hover:text-white"}`}>
@@ -232,11 +232,11 @@ function AppInner() {
               </button>
             ))}
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 shrink-0">
             <WalletMultiButton />
             {/* Mobile hamburger */}
-            <button onClick={() => setMobileNav(!mobileNav)} className="md:hidden text-gray-400 hover:text-white p-2">
-              <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+            <button onClick={() => setMobileNav(!mobileNav)} aria-label="Toggle menu" className="md:hidden text-gray-400 hover:text-white p-2 -mr-2">
+              <svg width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
             </button>
           </div>
         </div>
@@ -258,25 +258,25 @@ function AppInner() {
         {activeTab === "dashboard" && (
           <div>
             {/* Hero */}
-            <div className="mb-12 relative overflow-hidden rounded-2xl bg-gradient-to-br from-void-800 to-void border border-void-600 p-8 md:p-12">
+            <div className="mb-10 md:mb-12 relative overflow-hidden rounded-2xl bg-gradient-to-br from-void-800 to-void border border-void-600 p-6 sm:p-8 md:p-12">
               <div className="absolute top-0 right-0 w-96 h-96 bg-mint/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 animate-glow-pulse" />
               <div className="absolute bottom-0 left-0 w-64 h-64 bg-mint/3 rounded-full blur-3xl translate-y-1/2 -translate-x-1/3" />
               <div className="relative">
-                <h1 className="text-4xl md:text-5xl lg:text-6xl font-display font-bold text-white mb-4 leading-tight">
+                <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-display font-bold text-white mb-3 sm:mb-4 leading-tight">
                   Invoice Factoring,<br />
                   <span className="text-mint">On-Chain.</span>
                 </h1>
-                <p className="text-gray-400 text-lg max-w-xl mb-8 leading-relaxed">
+                <p className="text-gray-400 text-base sm:text-lg max-w-xl mb-6 sm:mb-8 leading-relaxed">
                   Tokenize verified invoices as on-chain assets. Fund them through programmable lending pools. Settle automatically when paid. All on Solana.
                 </p>
-                <div className="flex flex-wrap gap-3">
-                  <button onClick={() => setActiveTab("submit")} className="bg-mint text-void px-6 py-3 rounded-lg font-display font-semibold hover:bg-[#00c9a0] transition-all hover:shadow-lg hover:shadow-mint/20">
+                <div className="flex flex-wrap gap-2 sm:gap-3">
+                  <button onClick={() => setActiveTab("submit")} className="bg-mint text-void px-4 sm:px-6 py-2.5 sm:py-3 rounded-lg font-display font-semibold text-sm sm:text-base hover:bg-[#00c9a0] transition-all hover:shadow-lg hover:shadow-mint/20">
                     Submit Invoice
                   </button>
-                  <button onClick={() => setActiveTab("pools")} className="bg-void-800 border border-void-600 text-white px-6 py-3 rounded-lg font-display font-semibold hover:border-mint/30 transition-all">
+                  <button onClick={() => setActiveTab("pools")} className="bg-void-800 border border-void-600 text-white px-4 sm:px-6 py-2.5 sm:py-3 rounded-lg font-display font-semibold text-sm sm:text-base hover:border-mint/30 transition-all">
                     Explore Pools
                   </button>
-                  <a href={EXPLORER_URL} target="_blank" rel="noopener noreferrer" className="bg-void-800 border border-void-600 text-gray-400 px-6 py-3 rounded-lg font-display font-semibold hover:border-mint/30 hover:text-white transition-all">
+                  <a href={EXPLORER_URL} target="_blank" rel="noopener noreferrer" className="bg-void-800 border border-void-600 text-gray-400 px-4 sm:px-6 py-2.5 sm:py-3 rounded-lg font-display font-semibold text-sm sm:text-base hover:border-mint/30 hover:text-white transition-all">
                     View on Explorer ↗
                   </a>
                 </div>
@@ -292,16 +292,16 @@ function AppInner() {
             </div>
 
             {/* How It Works */}
-            <div className="bg-void-800 border border-void-600 rounded-2xl p-6 md:p-8 mb-10">
-              <h2 className="text-xl font-display font-bold text-white mb-8">How It Works</h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4">
+            <div className="bg-void-800 border border-void-600 rounded-2xl p-5 sm:p-6 md:p-8 mb-8 sm:mb-10">
+              <h2 className="text-lg sm:text-xl font-display font-bold text-white mb-6 sm:mb-8">How It Works</h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3 sm:gap-4">
                 {STEPS.map((step, i) => (
-                  <div key={i} className="step-card rounded-xl p-5 bg-void-900 cursor-pointer" onClick={() => setExpandedStep(expandedStep === i ? null : i)}>
-                    <div className="step-number text-3xl md:text-4xl font-display font-bold text-mint/20 mb-2 transition-all duration-500">
+                  <div key={i} className="step-card rounded-xl p-4 sm:p-5 bg-void-900 cursor-pointer" onClick={() => setExpandedStep(expandedStep === i ? null : i)}>
+                    <div className="step-number text-2xl sm:text-3xl md:text-4xl font-display font-bold text-mint/20 mb-2 transition-all duration-500">
                       {step.num}
                     </div>
                     <div className="step-title font-display font-semibold text-gray-300 mb-2 transition-all duration-300">{step.title}</div>
-                    <div className="text-gray-500 text-sm leading-relaxed">{step.desc}</div>
+                    <div className="text-gray-500 text-xs sm:text-sm leading-relaxed">{step.desc}</div>
                     {expandedStep === i && (
                       <div className="mt-3 pt-3 border-t border-void-600 text-mint/70 text-xs leading-relaxed animate-fade-in">
                         {step.detail}
@@ -314,18 +314,18 @@ function AppInner() {
             </div>
 
             {/* Recent Activity */}
-            <div className="bg-void-800 border border-void-600 rounded-2xl p-6 md:p-8">
-              <h2 className="text-xl font-display font-bold text-white mb-6">Recent Activity</h2>
+            <div className="bg-void-800 border border-void-600 rounded-2xl p-5 sm:p-6 md:p-8">
+              <h2 className="text-lg sm:text-xl font-display font-bold text-white mb-4 sm:mb-6">Recent Activity</h2>
               <div className="space-y-1">
                 {MOCK_INVOICES.map(inv => (
-                  <div key={inv.id} className="flex items-center justify-between py-4 border-b border-void-600/50 last:border-0 hover:bg-void-900/50 px-3 rounded-lg transition-colors">
-                    <div className="flex items-center gap-4">
-                      <span className="font-mono text-sm text-white">{inv.id}</span>
-                      <span className={`text-xs px-2 py-0.5 rounded-full border ${STATUS_COLORS[inv.status]}`}>{inv.status}</span>
+                  <div key={inv.id} className="flex items-center justify-between gap-3 py-3 sm:py-4 border-b border-void-600/50 last:border-0 hover:bg-void-900/50 px-2 sm:px-3 rounded-lg transition-colors">
+                    <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-1">
+                      <span className="font-mono text-xs sm:text-sm text-white truncate">{inv.id}</span>
+                      <span className={`text-[10px] sm:text-xs px-2 py-0.5 rounded-full border whitespace-nowrap ${STATUS_COLORS[inv.status]}`}>{inv.status}</span>
                     </div>
-                    <div className="text-right">
-                      <div className="font-mono text-sm text-white">${inv.faceValue.toLocaleString()}</div>
-                      <div className="text-xs text-gray-500">Due {inv.maturity}</div>
+                    <div className="text-right shrink-0">
+                      <div className="font-mono text-xs sm:text-sm text-white">${inv.faceValue.toLocaleString()}</div>
+                      <div className="text-[10px] sm:text-xs text-gray-500">Due {inv.maturity}</div>
                     </div>
                   </div>
                 ))}
@@ -337,21 +337,21 @@ function AppInner() {
         {/* ═══ POOLS ═══ */}
         {activeTab === "pools" && (
           <div>
-            <h2 className="text-2xl font-display font-bold text-white mb-6">Lending Pools</h2>
+            <h2 className="text-xl sm:text-2xl font-display font-bold text-white mb-5 sm:mb-6">Lending Pools</h2>
             <div className="grid gap-4">
               {MOCK_POOLS.map((pool, i) => (
-                <div key={i} className="pool-card bg-void-800 rounded-xl p-6">
-                  <div className="flex items-center justify-between mb-5">
-                    <div>
-                      <h3 className="font-display font-bold text-white text-lg">{pool.name}</h3>
-                      <span className="text-xs text-gray-500 font-mono">Pool #{i} · Min {pool.minDiscount}% discount · Max {pool.maxMaturity}d maturity</span>
+                <div key={i} className="pool-card bg-void-800 rounded-xl p-5 sm:p-6">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-5">
+                    <div className="min-w-0">
+                      <h3 className="font-display font-bold text-white text-base sm:text-lg">{pool.name}</h3>
+                      <span className="text-[11px] sm:text-xs text-gray-500 font-mono">Pool #{i} · Min {pool.minDiscount}% discount · Max {pool.maxMaturity}d maturity</span>
                     </div>
                     <button onClick={() => { log("POOL", `Opening deposit modal for ${pool.name}`); setDepositPool(pool); }}
-                      className="bg-mint/10 text-mint px-5 py-2.5 rounded-lg text-sm font-display font-semibold border border-mint/20 hover:bg-mint/20 transition-all">
+                      className="w-full sm:w-auto bg-mint/10 text-mint px-5 py-2.5 rounded-lg text-sm font-display font-semibold border border-mint/20 hover:bg-mint/20 transition-all shrink-0">
                       Deposit
                     </button>
                   </div>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
                     <div>
                       <div className="text-xs text-gray-500 mb-1">TVL</div>
                       <div className="font-display font-semibold text-white">${(pool.tvl / 1e6).toFixed(2)}M</div>
@@ -383,7 +383,7 @@ function AppInner() {
         {/* ═══ INVOICES ═══ */}
         {activeTab === "invoices" && (
           <div>
-            <h2 className="text-2xl font-display font-bold text-white mb-6">Invoice Registry</h2>
+            <h2 className="text-xl sm:text-2xl font-display font-bold text-white mb-5 sm:mb-6">Invoice Registry</h2>
             {/* Mobile cards */}
             <div className="md:hidden space-y-3">
               {MOCK_INVOICES.map(inv => (
@@ -433,49 +433,49 @@ function AppInner() {
         {/* ═══ SUBMIT INVOICE ═══ */}
         {activeTab === "submit" && (
           <div className="max-w-2xl mx-auto">
-            <h2 className="text-2xl font-display font-bold text-white mb-2">Submit Invoice</h2>
-            <p className="text-gray-500 mb-8">Tokenize a verified invoice for pool funding. Requires verifier co-signature.</p>
-            <div className="bg-void-800 border border-void-600 rounded-2xl p-6 md:p-8 space-y-5">
+            <h2 className="text-xl sm:text-2xl font-display font-bold text-white mb-2">Submit Invoice</h2>
+            <p className="text-gray-500 text-sm sm:text-base mb-6 sm:mb-8">Tokenize a verified invoice for pool funding. Requires verifier co-signature.</p>
+            <div className="bg-void-800 border border-void-600 rounded-2xl p-5 sm:p-6 md:p-8 space-y-5">
               <div>
                 <label className="text-sm font-display font-medium text-gray-400 block mb-2">Invoice ID <span className="text-red-400">*</span></label>
                 <input type="text" value={invoiceForm.invoiceId} onChange={e => setInvoiceForm(f => ({ ...f, invoiceId: e.target.value }))}
-                  placeholder="INV-2026-049" className="w-full bg-void border border-void-600 rounded-lg px-4 py-3 text-white font-mono placeholder-gray-600 focus:outline-none transition-all" />
+                  placeholder="INV-2026-049" className="w-full bg-void border border-void-600 rounded-lg px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base text-white font-mono placeholder-gray-600 focus:outline-none transition-all" />
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="text-sm font-display font-medium text-gray-400 block mb-2">Face Value (USDC) <span className="text-red-400">*</span></label>
                   <input type="number" value={invoiceForm.faceValue} onChange={e => setInvoiceForm(f => ({ ...f, faceValue: e.target.value }))}
-                    placeholder="10,000" className="w-full bg-void border border-void-600 rounded-lg px-4 py-3 text-white font-mono placeholder-gray-600 focus:outline-none transition-all" />
+                    placeholder="10,000" className="w-full bg-void border border-void-600 rounded-lg px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base text-white font-mono placeholder-gray-600 focus:outline-none transition-all" />
                 </div>
                 <div>
                   <label className="text-sm font-display font-medium text-gray-400 block mb-2">Maturity Date <span className="text-red-400">*</span></label>
                   <input type="date" value={invoiceForm.maturityDate} onChange={e => setInvoiceForm(f => ({ ...f, maturityDate: e.target.value }))}
-                    className="w-full bg-void border border-void-600 rounded-lg px-4 py-3 text-white font-mono focus:outline-none transition-all" />
+                    className="w-full bg-void border border-void-600 rounded-lg px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base text-white font-mono focus:outline-none transition-all" />
                 </div>
               </div>
               <div>
                 <label className="text-sm font-display font-medium text-gray-400 block mb-2">Debtor Wallet Address <span className="text-red-400">*</span></label>
                 <input type="text" value={invoiceForm.debtor} onChange={e => setInvoiceForm(f => ({ ...f, debtor: e.target.value }))}
-                  placeholder="7bR3...mQ2z or full Solana address" className="w-full bg-void border border-void-600 rounded-lg px-4 py-3 text-white font-mono placeholder-gray-600 focus:outline-none transition-all" />
+                  placeholder="Solana wallet address" className="w-full bg-void border border-void-600 rounded-lg px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base text-white font-mono placeholder-gray-600 focus:outline-none transition-all" />
               </div>
               <div>
                 <label className="text-sm font-display font-medium text-gray-400 block mb-2">IPFS Document Hash</label>
                 <input type="text" value={invoiceForm.ipfsHash} onChange={e => setInvoiceForm(f => ({ ...f, ipfsHash: e.target.value }))}
-                  placeholder="QmYwAPJzv5CZsnA625s3Xf2nemtYgPpHdWEz79ojWnPbdG" className="w-full bg-void border border-void-600 rounded-lg px-4 py-3 text-white font-mono placeholder-gray-600 focus:outline-none transition-all" />
+                  placeholder="QmYwAPJzv5CZsnA625s3Xf2nemt..." className="w-full bg-void border border-void-600 rounded-lg px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base text-white font-mono placeholder-gray-600 focus:outline-none transition-all" />
               </div>
               <div className="bg-void border border-amber-500/20 rounded-lg p-4 flex items-start gap-3">
-                <span className="text-amber-400 text-lg mt-0.5">⚠</span>
-                <div className="text-sm text-gray-400">
+                <span className="text-amber-400 text-lg mt-0.5 shrink-0">⚠</span>
+                <div className="text-xs sm:text-sm text-gray-400">
                   <span className="text-amber-400 font-medium">Verifier Required.</span> A registered oracle verifier must co-sign this transaction to attest the invoice is legitimate. Contact your verifier before submitting.
                 </div>
               </div>
               {!wallet.connected && (
-                <div className="bg-void border border-red-500/20 rounded-lg p-4 text-sm text-red-400 flex items-center gap-2">
+                <div className="bg-void border border-red-500/20 rounded-lg p-4 text-xs sm:text-sm text-red-400 flex items-center gap-2">
                   <span>⊘</span> Connect your wallet to submit invoices.
                 </div>
               )}
               <button onClick={handleSubmitInvoice}
-                className="w-full bg-mint text-void py-3.5 rounded-lg font-display font-bold hover:bg-[#00c9a0] transition-all disabled:opacity-40 disabled:cursor-not-allowed hover:shadow-lg hover:shadow-mint/20"
+                className="w-full bg-mint text-void py-3 sm:py-3.5 rounded-lg font-display font-bold hover:bg-[#00c9a0] transition-all disabled:opacity-40 disabled:cursor-not-allowed hover:shadow-lg hover:shadow-mint/20"
                 disabled={!wallet.connected}>
                 {wallet.connected ? "Submit" : "Connect Wallet First"}
               </button>
@@ -485,20 +485,20 @@ function AppInner() {
       </main>
 
       {/* ── Footer ── */}
-      <footer className="border-t border-void-600 mt-20 py-8 relative z-10">
-        <div className="max-w-7xl mx-auto px-4 md:px-6 flex flex-col md:flex-row items-center justify-between gap-4">
+      <footer className="border-t border-void-600 mt-16 sm:mt-20 py-6 sm:py-8 relative z-10">
+        <div className="max-w-7xl mx-auto px-4 md:px-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">
           <div className="flex items-center gap-2">
             <svg width="20" height="20" viewBox="0 0 36 36" fill="none"><rect width="36" height="36" rx="8" fill="#0f0f1a"/><circle cx="18" cy="18" r="7" fill="none" stroke="#00e6b4" strokeWidth="2"/><circle cx="18" cy="18" r="2.5" fill="#00e6b4"/></svg>
-            <span className="font-display text-sm text-gray-500">
+            <span className="font-display text-xs sm:text-sm text-gray-500">
               Obligo Protocol · Solana Frontier Hackathon 2026
             </span>
           </div>
-          <div className="flex items-center gap-3 text-sm">
-            <span className="text-gray-600 font-mono text-xs">{PROGRAM_ID.slice(0, 8)}...{PROGRAM_ID.slice(-4)}</span>
+          <div className="flex items-center gap-3 text-sm flex-wrap justify-center">
+            <span className="text-gray-600 font-mono text-[11px] sm:text-xs">{PROGRAM_ID.slice(0, 8)}...{PROGRAM_ID.slice(-4)}</span>
             <span className="text-void-600">|</span>
-            <a href={GITHUB_URL} target="_blank" rel="noopener noreferrer" className="text-gray-500 hover:text-mint transition-colors font-display">GitHub</a>
-            <a href={DOCS_URL} target="_blank" rel="noopener noreferrer" className="text-gray-500 hover:text-mint transition-colors font-display">Docs</a>
-            <a href={EXPLORER_URL} target="_blank" rel="noopener noreferrer" className="text-gray-500 hover:text-mint transition-colors font-display">Explorer</a>
+            <a href={GITHUB_URL} target="_blank" rel="noopener noreferrer" className="text-gray-500 hover:text-mint transition-colors font-display text-xs sm:text-sm">GitHub</a>
+            <a href={DOCS_URL} target="_blank" rel="noopener noreferrer" className="text-gray-500 hover:text-mint transition-colors font-display text-xs sm:text-sm">Docs</a>
+            <a href={EXPLORER_URL} target="_blank" rel="noopener noreferrer" className="text-gray-500 hover:text-mint transition-colors font-display text-xs sm:text-sm">Explorer</a>
           </div>
         </div>
       </footer>
@@ -509,17 +509,25 @@ function AppInner() {
 // ══════════════════════════════════════════════════════════════════════
 // ROOT — WALLET PROVIDERS
 // ══════════════════════════════════════════════════════════════════════
+// Casting these three providers to `any` is a narrow, documented shim for
+// the known version skew between @solana/wallet-adapter-react's bundled
+// React 18 types and the React types resolved by Next 14. Without this,
+// `tsc` reports "cannot be used as a JSX component" on all three.
+const AnyConnectionProvider = ConnectionProvider as any;
+const AnyWalletProvider = WalletProvider as any;
+const AnyWalletModalProvider = WalletModalProvider as any;
+
 export default function Home() {
   const endpoint = useMemo(() => clusterApiUrl("devnet"), []);
   const wallets = useMemo(() => [new PhantomWalletAdapter()], []);
 
   return (
-    <ConnectionProvider endpoint={endpoint}>
-      <WalletProvider wallets={wallets} autoConnect>
-        <WalletModalProvider>
+    <AnyConnectionProvider endpoint={endpoint}>
+      <AnyWalletProvider wallets={wallets} autoConnect>
+        <AnyWalletModalProvider>
           <AppInner />
-        </WalletModalProvider>
-      </WalletProvider>
-    </ConnectionProvider>
+        </AnyWalletModalProvider>
+      </AnyWalletProvider>
+    </AnyConnectionProvider>
   );
 }

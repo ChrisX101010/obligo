@@ -96,31 +96,24 @@ pub fn deposit(ctx: Context<Deposit>, amount: u64) -> Result<()> {
 
     let pool = &mut ctx.accounts.pool;
 
-    // Calculate LP shares to mint BEFORE updating state (prevents donation attack).
-    let shares = pool.shares_for_deposit(amount);
-    require!(shares > 0, ObligoError::ZeroDeposit);
+    // Calculate LP shares to mint BEFORE state updates.
+    // Returns (user_shares, dead_shares) — dead_shares is non-zero only on the
+    // very first deposit to this pool (inflation attack prevention).
+    let (user_shares, dead_shares) = pool.shares_for_deposit(amount)?;
+    require!(user_shares > 0, ObligoError::ZeroDeposit);
 
-    // Transfer USDC from lender to vault.
-    token::transfer(
-        CpiContext::new(
-            ctx.accounts.token_program.to_account_info(),
-            Transfer {
-                from: ctx.accounts.lender_usdc.to_account_info(),
-                to: ctx.accounts.vault.to_account_info(),
-                authority: ctx.accounts.lender.to_account_info(),
-            },
-        ),
-        amount,
-    )?;
+    let total_minted = user_shares
+        .checked_add(dead_shares)
+        .ok_or(ObligoError::MathOverflow)?;
 
-    // Update pool accounting.
+    // ── Effects first (check-effects-interactions pattern) ──
     pool.total_deposited = pool
         .total_deposited
         .checked_add(amount)
         .ok_or(ObligoError::MathOverflow)?;
     pool.total_lp_shares = pool
         .total_lp_shares
-        .checked_add(shares)
+        .checked_add(total_minted)
         .ok_or(ObligoError::MathOverflow)?;
 
     // Update position.
@@ -133,17 +126,31 @@ pub fn deposit(ctx: Context<Deposit>, amount: u64) -> Result<()> {
     }
     position.lp_shares = position
         .lp_shares
-        .checked_add(shares)
+        .checked_add(user_shares)
         .ok_or(ObligoError::MathOverflow)?;
     position.total_deposited = position
         .total_deposited
         .checked_add(amount)
         .ok_or(ObligoError::MathOverflow)?;
 
-    msg!(
-        "Deposited {} USDC → {} LP shares (pool #{})",
+    // ── Interaction (CPI) last ──
+    token::transfer(
+        CpiContext::new(
+            ctx.accounts.token_program.to_account_info(),
+            Transfer {
+                from: ctx.accounts.lender_usdc.to_account_info(),
+                to: ctx.accounts.vault.to_account_info(),
+                authority: ctx.accounts.lender.to_account_info(),
+            },
+        ),
         amount,
-        shares,
+    )?;
+
+    msg!(
+        "Deposited {} USDC → {} LP shares ({} dead) (pool #{})",
+        amount,
+        user_shares,
+        dead_shares,
         pool.index
     );
     Ok(())
@@ -204,14 +211,33 @@ pub fn withdraw(ctx: Context<Withdraw>, lp_amount: u64) -> Result<()> {
 
     let pool = &mut ctx.accounts.pool;
 
-    // Calculate USDC value of shares.
-    let usdc_out = pool.value_of_shares(lp_amount);
+    // Calculate USDC value of shares using checked arithmetic.
+    let usdc_out = pool.value_of_shares(lp_amount)?;
+    require!(usdc_out > 0, ObligoError::ZeroWithdraw);
     require!(
-        usdc_out <= pool.available_liquidity(),
+        usdc_out <= pool.available_liquidity_checked()?,
         ObligoError::InsufficientLiquidity
     );
 
-    // Transfer USDC from vault to lender via PDA signer.
+    // ── Effects first ──
+    pool.total_withdrawn = pool
+        .total_withdrawn
+        .checked_add(usdc_out)
+        .ok_or(ObligoError::MathOverflow)?;
+    pool.total_lp_shares = pool
+        .total_lp_shares
+        .checked_sub(lp_amount)
+        .ok_or(ObligoError::MathOverflow)?;
+    position.lp_shares = position
+        .lp_shares
+        .checked_sub(lp_amount)
+        .ok_or(ObligoError::MathOverflow)?;
+    position.total_withdrawn = position
+        .total_withdrawn
+        .checked_add(usdc_out)
+        .ok_or(ObligoError::MathOverflow)?;
+
+    // ── Interaction last: transfer USDC from vault via PDA signer ──
     let pool_index_bytes = pool.index.to_le_bytes();
     let seeds: &[&[u8]] = &[Pool::SEED, &pool_index_bytes, &[pool.bump]];
 
@@ -227,26 +253,6 @@ pub fn withdraw(ctx: Context<Withdraw>, lp_amount: u64) -> Result<()> {
         ),
         usdc_out,
     )?;
-
-    // Update pool accounting.
-    pool.total_withdrawn = pool
-        .total_withdrawn
-        .checked_add(usdc_out)
-        .ok_or(ObligoError::MathOverflow)?;
-    pool.total_lp_shares = pool
-        .total_lp_shares
-        .checked_sub(lp_amount)
-        .ok_or(ObligoError::MathOverflow)?;
-
-    // Update position.
-    position.lp_shares = position
-        .lp_shares
-        .checked_sub(lp_amount)
-        .ok_or(ObligoError::MathOverflow)?;
-    position.total_withdrawn = position
-        .total_withdrawn
-        .checked_add(usdc_out)
-        .ok_or(ObligoError::MathOverflow)?;
 
     msg!(
         "Withdrew {} LP shares → {} USDC (pool #{})",
