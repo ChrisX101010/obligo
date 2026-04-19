@@ -226,3 +226,100 @@ input:focus, textarea:focus {
     padding: 8px 12px !important;
   }
 }
+
+/* ── Wallet dropdown positioning fix ── */
+/* Anchor dropdown to the button, not the viewport */
+.wallet-adapter-dropdown {
+  position: relative !important;
+}
+.wallet-adapter-dropdown-list {
+  position: absolute !important;
+  top: calc(100% + 8px) !important;
+  right: 0 !important;
+  left: auto !important;
+  margin: 0 !important;
+  transform: none !important;
+}
+
+/* ── Wallet modal (Select Wallet dialog) ── */
+/* The adapter's default modal renders full-width. Constrain it. */
+.wallet-adapter-modal {
+  background: rgba(0, 0, 0, 0.7) !important;
+  backdrop-filter: blur(4px) !important;
+}
+.wallet-adapter-modal-wrapper {
+  background: var(--void-800, #0f0f1a) !important;
+  border: 1px solid rgba(0, 230, 180, 0.15) !important;
+  border-radius: 16px !important;
+  max-width: 420px !important;
+  width: calc(100vw - 2rem) !important;
+  margin: 0 auto !important;
+  padding: 0 !important;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5) !important;
+}
+.wallet-adapter-modal-title {
+  color: #fff !important;
+  font-family: 'Outfit', sans-serif !important;
+  font-size: 18px !important;
+  font-weight: 600 !important;
+  padding: 24px 24px 16px !important;
+  margin: 0 !important;
+  text-align: left !important;
+}
+.wallet-adapter-modal-list {
+  padding: 0 16px 16px !important;
+  margin: 0 !important;
+  gap: 6px !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+.wallet-adapter-modal-list .wallet-adapter-button {
+  background: transparent !important;
+  border: 1px solid rgba(0, 230, 180, 0.12) !important;
+  border-radius: 10px !important;
+  color: #d0d5e0 !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-size: 13px !important;
+  height: 48px !important;
+  padding: 0 16px !important;
+  line-height: normal !important;
+  justify-content: flex-start !important;
+  transition: all 0.15s ease !important;
+}
+.wallet-adapter-modal-list .wallet-adapter-button:hover {
+  background: rgba(0, 230, 180, 0.08) !important;
+  border-color: rgba(0, 230, 180, 0.3) !important;
+  color: var(--mint, #00e6b4) !important;
+}
+.wallet-adapter-modal-list .wallet-adapter-button-start-icon,
+.wallet-adapter-modal-list .wallet-adapter-button-start-icon img {
+  width: 22px !important;
+  height: 22px !important;
+  margin-right: 10px !important;
+}
+.wallet-adapter-modal-list-more {
+  color: var(--mint, #00e6b4) !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-size: 12px !important;
+  padding: 8px 16px !important;
+}
+.wallet-adapter-modal-button-close {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border-radius: 50% !important;
+  width: 32px !important;
+  height: 32px !important;
+  top: 16px !important;
+  right: 16px !important;
+  padding: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+.wallet-adapter-modal-button-close:hover {
+  background: rgba(255, 255, 255, 0.1) !important;
+}
+.wallet-adapter-modal-button-close svg {
+  width: 14px !important;
+  height: 14px !important;
+  fill: #d0d5e0 !important;
+}
