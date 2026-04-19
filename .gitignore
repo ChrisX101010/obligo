@@ -1,0 +1,30 @@
+# Build artifacts
+target/
+node_modules/
+.anchor/
+.next/
+out/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Keys (never commit)
+*.json.bak
+deploy-keypair.json
+test-ledger/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Env
+.env
+.env.local
+!target/deploy/
+target/debug/
+target/release/
+target/sbf-solana-solana/
+yarn.lock
