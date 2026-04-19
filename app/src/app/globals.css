@@ -189,16 +189,6 @@ input:focus, textarea:focus {
 .wallet-adapter-dropdown {
   display: inline-block;
 }
-.wallet-adapter-dropdown-list {
-  background: var(--void-800, #0f0f1a) !important;
-  border: 1px solid rgba(0, 230, 180, 0.15) !important;
-  border-radius: 10px !important;
-  padding: 6px !important;
-  font-family: 'JetBrains Mono', monospace !important;
-  min-width: 160px !important;
-  grid-row-gap: 2px !important;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4) !important;
-}
 .wallet-adapter-dropdown-list-item {
   background: transparent !important;
   color: #d0d5e0 !important;
@@ -217,28 +207,11 @@ input:focus, textarea:focus {
 
 /* Mobile: even more compact */
 @media (max-width: 640px) {
-  .wallet-adapter-dropdown-list {
-    min-width: 140px !important;
-    padding: 4px !important;
-  }
-  .wallet-adapter-dropdown-list-item {
-    font-size: 12px !important;
-    padding: 8px 12px !important;
-  }
-}
 
 /* ── Wallet dropdown positioning fix ── */
 /* Anchor dropdown to the button, not the viewport */
 .wallet-adapter-dropdown {
   position: relative !important;
-}
-.wallet-adapter-dropdown-list {
-  position: absolute !important;
-  top: calc(100% + 8px) !important;
-  right: 0 !important;
-  left: auto !important;
-  margin: 0 !important;
-  transform: none !important;
 }
 
 /* ── Wallet modal (Select Wallet dialog) ── */
@@ -322,4 +295,14 @@ input:focus, textarea:focus {
   width: 14px !important;
   height: 14px !important;
   fill: #d0d5e0 !important;
+}
+
+/* Anchor dropdown centered-aligned with the button */
+.wallet-adapter-dropdown-list {
+  position: absolute !important;
+  top: calc(100% + 8px) !important;
+  right: 50% !important;
+  left: auto !important;
+  transform: translateX(50%) !important;
+  margin: 0 !important;
 }
