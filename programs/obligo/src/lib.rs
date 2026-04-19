@@ -6,7 +6,7 @@ pub mod utils;
 
 use instructions::*;
 
-declare_id!("ob1ig0AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA");
+declare_id!("G2U6oqyujU8xWFwXMeejavMCbYYJNRSqromMJrYH5a3W");
 
 #[program]
 pub mod obligo {
