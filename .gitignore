@@ -28,3 +28,6 @@ target/debug/
 target/release/
 target/sbf-solana-solana/
 yarn.lock
+
+# TypeScript incremental build cache
+*.tsbuildinfo

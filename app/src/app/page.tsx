@@ -1,8 +1,7 @@
-"use client";
-import dynamic from "next/dynamic";
+import { LandingDashboard } from '@/components/LandingDashboard';
 
-const App = dynamic(() => import("./_app"), { ssr: false });
-
-export default function Page() {
-  return <App />;
+// Root path renders the dashboard view. /dashboard is a separate route
+// for explicit-link cases (sharing, bookmarks); content is the same.
+export default function Home() {
+  return <LandingDashboard />;
 }
